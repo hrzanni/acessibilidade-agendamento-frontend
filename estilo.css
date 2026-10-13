@@ -154,7 +154,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 
 /* ---------- calendário ---------- */
 .mes-nav { display: flex; align-items: center; gap: 0.75rem; }
-.mes-nav h2 { flex: 1; text-align: center; }
+.mes-nav h3 { flex: 1; text-align: center; }
 .mes-nav .btn { flex: none; min-height: 4rem; }
 .btn[aria-disabled="true"] { background: var(--off); border-color: var(--line-soft); color: var(--muted); cursor: not-allowed; }
 .cal { width: 100%; border-collapse: separate; border-spacing: 0.375rem; table-layout: fixed; margin: -0.375rem; width: calc(100% + 0.75rem); }
@@ -218,7 +218,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
   .steps li { position: relative; }
   .so-estreito { display: inline; }
   .mes-nav { flex-wrap: wrap; }
-  .mes-nav h2 { order: -1; flex: 1 0 100%; }
+  .mes-nav h3 { order: -1; flex: 1 0 100%; }
   .mes-nav .btn { flex: 1 1 0; padding: 0.5rem; font-size: 1.0625rem; }
   .dia { font-size: 1.25rem; min-height: 3rem; }
   .horas { grid-template-columns: repeat(2, 1fr); }
@@ -238,3 +238,28 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 @media (forced-colors: active) {
   .opt input:checked + span, .hora input:checked + span, .dia[aria-pressed="true"] { outline: 3px solid Highlight; }
 }
+
+/* ---------- página única ---------- */
+[hidden] { display: none !important; }
+.principal h1 { margin-bottom: 0.5rem; }
+.intro { margin-bottom: 1.5rem; }
+.layout { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1fr); }
+.coluna { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
+#resultado:not(:empty) { margin-bottom: 1.5rem; }
+#calendario, #horarios { display: flex; flex-direction: column; gap: 1rem; }
+#erros:empty, #erro-loc:empty { display: none; }
+.erro-msg ul { margin: 0.25rem 0 0; padding: 0; list-style: none; }
+.erro-msg li { margin: 0; }
+.erro-msg a { color: inherit; font-weight: 700; display: block; min-height: 2.75rem; padding: 0.6rem 0; line-height: 1.35; }
+.vazio { color: var(--muted); font-weight: 400; }
+.resumo-col .resumo dd { font-size: 1.125rem; }
+.resumo-col .card { gap: 1.25rem; }
+#h-local, #h-dia, #h-hora, #cl-a, #res-titulo { scroll-margin-top: 1rem; }
+@media (min-width: 62rem) {
+  .layout { grid-template-columns: minmax(0, 1fr) 21rem; align-items: start; }
+}
+
+.mes-nav h3 { white-space: nowrap; }
+.mes-nav .btn { padding-inline: 1rem; }
+@media (max-width: 40rem) { .mes-nav h3 { white-space: normal; } }
+h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, h3[tabindex="-1"]:focus { outline: none; }
