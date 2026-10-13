@@ -1,0 +1,80 @@
+@font-face{font-family:"Inter";font-weight:400;font-style:normal;font-display:swap;src:url("fonts/inter-latin-400-normal.woff2") format("woff2")}
+@font-face{font-family:"Inter";font-weight:600;font-style:normal;font-display:swap;src:url("fonts/inter-latin-600-normal.woff2") format("woff2")}
+@font-face{font-family:"Inter";font-weight:700;font-style:normal;font-display:swap;src:url("fonts/inter-latin-700-normal.woff2") format("woff2")}
+
+:root{--azul:#0b3d91;--texto:#1a1a1a;--cinza:#5f5f5f;--borda:#6b7a99;--claro:#eeeeee}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#fff;color:var(--texto);font-family:"Inter",system-ui,sans-serif;font-size:22px;line-height:28px}
+h1,h2,p,ol,ul{margin:0;padding:0}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #f5a300;outline-offset:2px}
+
+.cartao{width:100%;max-width:760px;margin:24px auto;border:1px solid #dcdcdc;border-radius:20px;padding:0 33px 33px;background:#fff;overflow:hidden}
+.cartao.t1{min-height:907px}.cartao.t2{min-height:774px}.cartao.t3{min-height:491px}.cartao.t4{min-height:544px}.cartao.t5{min-height:440px}
+.cartao>*:first-child{margin-top:33px}
+
+/* etapas */
+.etapa{font-size:22px;line-height:30px;font-weight:600;color:var(--azul)}
+.barras{list-style:none;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:9px}
+.barras li{height:10px;border-radius:5px;background:#eef0f4;border:1px solid #7a8196}
+.barras li.feito,.barras li.atual{background:var(--azul);border-color:var(--azul)}
+.nomes{list-style:none;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:7px;font-size:17px;line-height:24px;color:var(--cinza)}
+.nomes li.feito{color:var(--azul)}
+.nomes li.atual{color:var(--azul);font-weight:700}
+.nomes .ok{font-size:16px}
+
+h1{font-size:32px;line-height:38px;font-weight:700;color:var(--texto)}
+.etapa-titulo{margin-top:23px}
+
+/* botões */
+.btn{display:flex;align-items:center;justify-content:center;width:100%;border-radius:14px;font-weight:700;text-align:center}
+.btn-prim{background:var(--azul);border:2px solid var(--azul);color:#fff;height:68px;font-size:24px}
+.btn-sec{background:#fff;border:2px solid var(--azul);color:var(--azul);height:62px;font-size:22px}
+
+/* tela 1 */
+.nav-mes{display:flex;justify-content:space-between;align-items:center;margin-top:25px}
+.nav-mes button{width:209px;height:62px;background:#fff;border:2px solid var(--borda);border-radius:14px;font-size:19px;font-weight:600}
+.nav-mes h2{font-size:26px;line-height:34px;font-weight:700}
+.semana,.dias{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.semana{margin-top:31px;list-style:none;text-align:center;font-size:20px;line-height:24px;font-weight:600}
+.dias{margin-top:14px;list-style:none}
+.dias button{width:100%;height:64px;background:#fff;border:2px solid var(--borda);border-radius:12px;font-size:24px;font-weight:600}
+.dias button:disabled{background:var(--claro);border-color:var(--claro);color:#555;text-decoration:line-through;cursor:default}
+.dias button[aria-pressed="true"]{background:var(--azul);border-color:var(--azul);color:#fff}
+.dias .vazio{visibility:hidden}
+.legenda{margin-top:22px;font-size:19px;line-height:26px}
+.escolhido{margin-top:24px;font-size:22px;font-weight:600}
+.t1 .btn-prim{margin-top:22px}
+
+/* tela 2 */
+.sub{margin-top:24px}
+.periodo{margin-top:24px;font-size:24px;font-weight:700}
+.periodo.tarde{margin-top:25px}
+.horas{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:12px}
+.horas.h2{margin-top:14px}
+.horas button{width:100%;height:63px;background:#fff;border:2px solid var(--borda);border-radius:12px;font-size:24px;font-weight:600}
+.horas button[aria-pressed="true"]{background:var(--azul);border-color:var(--azul);color:#fff}
+.btn-mais{height:54px;margin-top:25px;border-radius:12px;font-size:20px}
+.aviso{margin-top:25px;height:60px;display:flex;align-items:center;padding:0 20px;background:#e8eefa;border-radius:12px;font-size:20px}
+.t2 .btn-prim{margin-top:24px}
+
+/* telas 3 e 5 */
+.selo{display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:20px;background:#fff0c2;color:#5a3a00;font-size:20px;font-weight:700}
+.t3 h1,.t5 h1{margin-top:26px}
+.texto{margin-top:29px;font-size:22px;line-height:30px}
+.t3 .btn-prim,.t5 .btn-prim{margin-top:23px}
+.t3 .btn-sec,.t5 .btn-sec{margin-top:25px}
+.ajuda{margin-top:24px;font-size:22px;font-weight:600}
+
+/* tela 4 */
+.rotulo{display:block;margin-top:24px;font-size:22px;font-weight:600}
+.campo{display:block;width:100%;height:62px;margin-top:10px;padding:0 20px;background:#fff;border:2px solid var(--borda);border-radius:12px;font-size:22px}
+.campo::placeholder{color:#6b6b6b;opacity:1}
+.t4 .btn-sec{height:58px;font-size:21px;margin-top:12px;border-radius:12px}
+.acoes{display:flex;gap:17px;margin-top:25px}
+.acoes .btn{height:64px;border-radius:12px}
+.btn-voltar{width:199px;flex:none;background:#fff;border:2px solid var(--borda);color:var(--texto);font-size:24px}
+.acoes .btn-prim{flex:1;width:auto}
+.nota{margin-top:22px;font-size:19px;line-height:30px}
