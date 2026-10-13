@@ -30,15 +30,17 @@
   </header>
 
   <main id="conteudo" class="principal" tabindex="-1">
-    <h1 id="titulo" tabindex="-1">Agendar consulta de clínica geral</h1>
-    <p class="lead intro">Escolha o local, o dia e o horário. Você pode mudar qualquer escolha antes de confirmar.</p>
+    <div class="pilha">
+      <div id="resultado"></div>
 
-    <div id="resultado"></div>
+      <div id="formulario" class="pilha">
+        <section class="card" aria-labelledby="titulo">
+          <div id="etapas"></div>
+          <h1 id="titulo" tabindex="-1">Agendar consulta de clínica geral</h1>
+        </section>
 
-    <div id="formulario" class="layout">
-      <div class="coluna">
         <section class="card" aria-labelledby="h-local">
-          <h2 id="h-local" tabindex="-1">1. Onde você quer ser atendido?</h2>
+          <h2 id="h-local" tabindex="-1">Onde você quer ser atendido?</h2>
           <div class="field">
             <label for="loc">Bairro, CEP ou endereço</label>
             <p class="hint" id="dica-loc">Exemplo: Centro, Rio de Janeiro</p>
@@ -49,30 +51,41 @@
             <button type="button" class="btn btn-outline btn-wide" id="btn-local">Usar minha localização</button>
             <p class="hint">Neste protótipo, o botão preenche um local de exemplo. Nenhuma localização é lida.</p>
           </div>
+          <button type="button" class="btn btn-primary btn-wide" id="cont-local">Continuar</button>
+          <p class="nota">Se faltar algum dado, o botão continua ativo e a tela avisa o que preencher.</p>
         </section>
 
         <section class="card" aria-labelledby="h-dia">
-          <h2 id="h-dia" tabindex="-1">2. Escolha o dia da consulta</h2>
+          <h2 id="h-dia" tabindex="-1">Escolha o dia da consulta</h2>
           <div id="calendario"></div>
+          <div id="erro-dia"></div>
+          <button type="button" class="btn btn-primary btn-wide" id="cont-dia">Continuar</button>
         </section>
 
         <section class="card" aria-labelledby="h-hora">
-          <h2 id="h-hora" tabindex="-1">3. Escolha o horário</h2>
+          <h2 id="h-hora" tabindex="-1">Escolha o horário</h2>
           <div id="horarios"></div>
+          <div id="erro-hora"></div>
+          <button type="button" class="btn btn-primary btn-wide" id="cont-hora">Continuar</button>
         </section>
-      </div>
 
-      <aside class="resumo-col" aria-labelledby="h-resumo">
-        <div class="card">
-          <h2 id="h-resumo">Seu agendamento</h2>
+        <section class="card" aria-labelledby="h-clinica-b">
+          <span class="badge badge-warn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l10 18H2L12 3z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M12 10v5M12 18v.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg> Sem agendamento pelo site</span>
+          <h2 id="h-clinica-b">Esta clínica não marca consulta pelo site</h2>
+          <p class="lead">Para marcar, fale com a clínica. Você também pode ver outras clínicas que têm horário livre.</p>
+          <button type="button" class="btn btn-primary btn-wide" id="btn-ligar" aria-expanded="false" aria-controls="telefone">Ligar para a clínica</button>
+          <p class="lead" id="telefone" hidden>Telefone de exemplo: (00) 0000-0000</p>
+          <button type="button" class="btn btn-outline btn-wide" id="btn-livre">Ver clínicas com horário livre</button>
+        </section>
+
+        <section class="card" aria-labelledby="h-confirmar">
+          <h2 id="h-confirmar" tabindex="-1">Confira e confirme</h2>
           <dl class="resumo" id="resumo"></dl>
           <div id="erros" tabindex="-1"></div>
           <button type="button" class="btn btn-primary btn-wide" id="btn-confirmar">Confirmar agendamento</button>
-          <p class="hint">Se faltar algum dado, o botão continua ativo e a tela avisa o que preencher.</p>
-        </div>
-      </aside>
+        </section>
+      </div>
     </div>
-
     <noscript><p class="aviso-js">Esta página precisa de JavaScript para funcionar. Se preferir, ligue 136 (Disque Saúde).</p></noscript>
   </main>
 

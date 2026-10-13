@@ -1,6 +1,7 @@
 (function () {
   'use strict';
 
+  var STEPS = ['Especialidade', 'Local', 'Dia', 'Horário', 'Confirmar'];
   var MANHA = ['08:30', '09:30', '10:00'];
   var TARDE = ['15:15', '15:30', '16:00'];
   var TARDE_MAIS = ['16:30', '17:00', '17:30'];
@@ -8,6 +9,7 @@
   var DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   var ESPECIALIDADE = 'Clínica geral';
   var CLINICA = 'Clínica de exemplo A, Centro';
+  var UBS_URL = 'https://www.google.com/maps/search/?api=1&query=UBS%20mais%20pr%C3%B3xima';
 
   var ICON = {
     check: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -21,7 +23,10 @@
   var mesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   var mesMax = new Date(hoje.getFullYear(), hoje.getMonth() + 3, 1);
 
-  var st = { loc: '', mes: mesAtual, dia: null, hora: '', mais: false };
+  function novoEstado() {
+    return { loc: '', mes: mesAtual, dia: null, hora: '', mais: false, done: { loc: false, dia: false, hora: false }, fim: false };
+  }
+  var st = novoEstado();
 
   function $(s) { return document.querySelector(s); }
   var elLoc = $('#loc'), elStatus = $('#status'), elDemo = $('#demo-falha');
@@ -35,11 +40,34 @@
   function longo(d) { return d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
   function disponivel(d) { var w = d.getDay(); return d > hoje && w !== 0 && w !== 6; }
   function anunciar(t) { elStatus.textContent = ''; setTimeout(function () { elStatus.textContent = t; }, 30); }
-  function focar(el, rolar) {
+  function focar(el) {
     if (!el) return;
     if (!el.hasAttribute('tabindex') && !/^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) el.setAttribute('tabindex', '-1');
-    el.focus({ preventScroll: rolar === false });
-    if (rolar !== false && el.scrollIntoView) el.scrollIntoView({ block: 'center' });
+    el.focus({ preventScroll: true });
+    el.scrollIntoView({ block: 'start' });
+  }
+
+  /* ---------- indicador de etapas ---------- */
+  function etapaAtual() {
+    var feitas = [true, st.done.loc, st.done.dia, st.done.hora, st.fim];
+    for (var i = 0; i < 5; i++) if (!feitas[i]) return { n: i + 1, feitas: feitas, todas: false };
+    return { n: 5, feitas: feitas, todas: true };
+  }
+  function renderEtapas(soHtml) {
+    var e = etapaAtual();
+    var itens = STEPS.map(function (nome, i) {
+      var n = i + 1, feita = e.feitas[i];
+      var cls = (feita || n === e.n) ? 'on' : '';
+      var atual = n === e.n && !e.todas;
+      if (atual) cls += ' atual';
+      var marca = feita ? ICON.check + '<span class="sr-only"> concluída</span> ' : '';
+      return '<li class="' + cls + '"' + (atual ? ' aria-current="step"' : '') + '><span class="barra"></span><span class="nome">' + marca + esc(nome) + '</span></li>';
+    }).join('');
+    var txt = e.todas ? 'Etapa 5 de 5: concluída' : 'Etapa ' + e.n + ' de 5<span class="so-estreito">: ' + esc(STEPS[e.n - 1]) + '</span>';
+    var html = '<p class="etapa-txt">' + txt + '</p><nav aria-label="Etapas do agendamento"><ol class="steps">' + itens + '</ol></nav>';
+    if (soHtml) return html;
+    $('#etapas').innerHTML = html;
+    return e.todas ? 'Etapa 5 de 5: concluída' : 'Etapa ' + e.n + ' de 5: ' + STEPS[e.n - 1];
   }
 
   /* ---------- calendário ---------- */
@@ -70,12 +98,12 @@
       '<h3 id="mes" aria-live="polite">' + mesTxt(st.mes) + '</h3>' +
       '<button type="button" class="btn" data-act="mes-prox"' + (proxDes ? ' aria-disabled="true"' : '') + '>Próximo mês ' + ICON.right + '</button></div>' +
       '<table class="cal" aria-labelledby="mes"><thead><tr>' + cab + '</tr></thead><tbody>' + linhas + '</tbody></table>' +
-      '<p class="legenda">' + ICON.check + ' dia escolhido. Número riscado e cinza: sem vaga (fins de semana e dias passados).</p>' +
+      '<p class="legenda">Legenda: ' + ICON.check + ' escolhido · número riscado e cinza = sem vaga</p>' +
       '<p class="escolha">' + (st.dia ? 'Dia escolhido: ' + esc(longo(st.dia)) : 'Nenhum dia escolhido ainda.') + '</p>';
     if (foco) { var alvo = $(foco); if (alvo) alvo.focus({ preventScroll: true }); }
   }
 
-  /* ---------- horários e clínicas ---------- */
+  /* ---------- horários ---------- */
   function grupo(nome, lista) {
     var h = lista.map(function (t) {
       return '<label class="hora"><input type="radio" name="hora" value="' + t + '"' + (st.hora === t ? ' checked' : '') + '><span>' + t + '</span></label>';
@@ -83,21 +111,16 @@
     return '<fieldset><legend class="legend">' + nome + '</legend><div class="horas">' + h + '</div></fieldset>';
   }
   function renderHoras(foco) {
-    var a;
     if (!st.dia) {
-      a = '<p class="aviso">Escolha um dia no calendário para ver os horários da Clínica A.</p>';
-    } else {
-      var tarde = st.mais ? TARDE.concat(TARDE_MAIS) : TARDE;
-      a = '<p class="muted">' + esc(longo(st.dia)) + '</p>' + grupo('Manhã', MANHA) + grupo('Tarde', tarde) +
-        (st.mais ? '' : '<button type="button" class="btn btn-outline btn-wide" data-act="mais-horas">Ver mais horários da tarde</button>') +
-        '<p class="aviso">Aviso: sábado e domingo não têm atendimento nesta clínica.</p>';
+      $('#horarios').innerHTML = '<p class="aviso">Escolha um dia no calendário para ver os horários da Clínica de exemplo A.</p>';
+      return;
     }
+    var tarde = st.mais ? TARDE.concat(TARDE_MAIS) : TARDE;
     $('#horarios').innerHTML =
-      '<div class="clinica"><h3 id="cl-a" tabindex="-1">Clínica de exemplo A</h3><p class="muted">Centro, Rio de Janeiro</p>' + a + '</div>' +
-      '<div class="clinica"><h3 id="cl-b">Clínica de exemplo B</h3>' +
-      '<span class="badge badge-warn">' + ICON.warn + ' Sem agendamento pelo site</span>' +
-      '<p>Esta clínica não marca consulta pelo site. Para marcar, fale com a clínica. Telefone de exemplo: (00) 0000-0000.</p>' +
-      '<button type="button" class="btn btn-outline btn-wide" data-act="ver-clinica-a">Ver clínicas com horário livre</button></div>';
+      '<p class="lead">Clínica de exemplo A · ' + esc(longo(st.dia)) + '</p>' +
+      grupo('Manhã', MANHA) + grupo('Tarde', tarde) +
+      (st.mais ? '' : '<button type="button" class="btn btn-outline btn-wide btn-ver-mais" data-act="mais-horas">Ver mais horários da tarde</button>') +
+      '<p class="aviso">Aviso: sábado e domingo não têm atendimento nesta clínica.</p>';
     if (foco) { var alvo = $(foco); if (alvo) alvo.focus({ preventScroll: true }); }
   }
 
@@ -114,25 +137,49 @@
       linha('Clínica', st.hora ? CLINICA : '', 'Escolha um horário');
   }
 
-  /* ---------- erros de preenchimento ---------- */
+  function atualizar(msg) {
+    var tx = renderEtapas();
+    if (msg) anunciar(msg + ' ' + tx);
+    renderResumo();
+  }
+
+  /* ---------- erros ---------- */
+  function msgErro(id, texto) {
+    return '<p class="erro-msg" id="' + id + '" role="alert">' + ICON.warn + '<span>' + esc(texto) + '</span></p>';
+  }
   function limparErros() {
-    $('#erros').innerHTML = '';
-    $('#erro-loc').innerHTML = '';
+    $('#erros').innerHTML = ''; $('#erro-dia').innerHTML = ''; $('#erro-hora').innerHTML = ''; $('#erro-loc').innerHTML = '';
     elLoc.removeAttribute('aria-invalid');
     elLoc.setAttribute('aria-describedby', 'dica-loc');
   }
-  function mostrarFaltas(falta) {
-    var itens = falta.map(function (f) { return '<li><a href="#" data-alvo="' + f.alvo + '">' + esc(f.txt) + '</a></li>'; }).join('');
-    $('#erros').innerHTML = '<div class="erro-msg" role="alert">' + ICON.warn + '<div><p>Para confirmar, falta:</p><ul>' + itens + '</ul></div></div>';
-    if (!st.loc.trim()) {
-      $('#erro-loc').innerHTML = '<p class="erro-msg" id="e-loc">' + ICON.warn + '<span>Informe o bairro, o CEP ou o endereço para continuar.</span></p>';
-      elLoc.setAttribute('aria-invalid', 'true');
-      elLoc.setAttribute('aria-describedby', 'e-loc dica-loc');
-    }
-    focar($('#erros'));
+  function erroLoc() {
+    $('#erro-loc').innerHTML = msgErro('e-loc', 'Informe o bairro, o CEP ou o endereço para continuar.');
+    elLoc.setAttribute('aria-invalid', 'true');
+    elLoc.setAttribute('aria-describedby', 'e-loc dica-loc');
   }
 
-  /* ---------- resultado ---------- */
+  /* ---------- continuar em cada cartão ---------- */
+  function contLocal() {
+    limparErros();
+    if (!st.loc.trim()) { erroLoc(); focar(elLoc); return; }
+    st.done.loc = true; atualizar('Local confirmado.');
+    focar($('#h-dia'));
+  }
+  function contDia() {
+    limparErros();
+    if (!st.dia) { $('#erro-dia').innerHTML = msgErro('e-dia', 'Escolha um dia disponível para continuar.'); focar($('#e-dia')); return; }
+    st.done.dia = true; atualizar('Dia confirmado.');
+    focar($('#h-hora'));
+  }
+  function contHora() {
+    limparErros();
+    if (!st.dia) { $('#erro-hora').innerHTML = msgErro('e-hora', 'Escolha um dia no calendário antes de escolher o horário.'); focar($('#e-hora')); return; }
+    if (!st.hora) { $('#erro-hora').innerHTML = msgErro('e-hora', 'Escolha um horário para continuar.'); focar($('#e-hora')); return; }
+    st.done.hora = true; atualizar('Horário confirmado.');
+    focar($('#h-confirmar'));
+  }
+
+  /* ---------- confirmar e resultados ---------- */
   function resumoFinal() {
     return '<dl class="resumo">' +
       '<div><dt>Especialidade</dt><dd>' + esc(ESPECIALIDADE) + '</dd></div>' +
@@ -143,22 +190,22 @@
   }
   function mostrarSucesso() {
     elForm.hidden = true;
-    elRes.innerHTML = '<div class="card"><span class="badge badge-ok" role="status">' + ICON.check + ' Consulta agendada com sucesso</span>' +
-      '<h2 id="res-titulo" tabindex="-1">Tudo certo com a sua consulta</h2>' + resumoFinal() +
-      '<div class="actions"><button type="button" class="btn btn-primary" data-act="novo">Agendar outra consulta</button></div></div>';
+    elRes.innerHTML = '<div class="card">' + renderEtapas(true) + '<span class="badge badge-ok" role="status">' + ICON.check + ' Consulta agendada com sucesso</span>' +
+      '<h1 id="res-titulo" tabindex="-1">Tudo certo com a sua consulta</h1>' + resumoFinal() +
+      '<button type="button" class="btn btn-primary btn-wide" data-act="novo">Agendar outra consulta</button></div>';
     document.title = 'Consulta agendada com sucesso | Agenda Saúde';
-    anunciar('Consulta agendada com sucesso');
+    anunciar('Consulta agendada com sucesso. Etapa 5 de 5: concluída.');
     focar($('#res-titulo'));
     window.scrollTo(0, 0);
   }
   function mostrarErroServico() {
     elForm.hidden = false;
     elRes.innerHTML = '<div class="card"><span class="badge badge-err">' + ICON.warn + ' Erro no agendamento</span>' +
-      '<h2 id="res-titulo" tabindex="-1">Não conseguimos confirmar o agendamento</h2>' +
+      '<h2 id="res-titulo" tabindex="-1">Não conseguimos abrir os agendamentos</h2>' +
       '<p class="lead">O serviço de agendamento não respondeu. Isso não foi causado por você. Suas escolhas continuam salvas. Escolha o que prefere fazer agora.</p>' +
       '<button type="button" class="btn btn-primary btn-wide" data-act="confirmar">Tentar de novo</button>' +
-      '<button type="button" class="btn btn-outline btn-wide" data-act="outro-horario">Escolher outro horário</button>' +
-      '<p><strong>Precisa de ajuda agora? Ligue <a href="tel:136">136</a> (Disque Saúde).</strong></p></div>';
+      '<a class="btn btn-outline btn-wide" href="' + UBS_URL + '" target="_blank" rel="noopener">Pesquisar a UBS mais próxima<span class="sr-only"> (abre em nova aba)</span></a>' +
+      '<p class="lead"><strong>Precisa de ajuda agora? Ligue <a href="tel:136">136</a> (Disque Saúde).</strong></p></div>';
     document.title = 'Erro no agendamento | Agenda Saúde';
     anunciar('Erro no agendamento. Suas escolhas continuam salvas.');
     focar($('#res-titulo'));
@@ -171,68 +218,83 @@
     if (!st.loc.trim()) falta.push({ txt: 'Informe o bairro, o CEP ou o endereço', alvo: '#loc' });
     if (!st.dia) falta.push({ txt: 'Escolha um dia no calendário', alvo: '#h-dia' });
     else if (!st.hora) falta.push({ txt: 'Escolha um horário', alvo: '#h-hora' });
-    if (falta.length) { mostrarFaltas(falta); return; }
+    if (falta.length) {
+      var itens = falta.map(function (f) { return '<li><a href="#" data-alvo="' + f.alvo + '">' + esc(f.txt) + '</a></li>'; }).join('');
+      $('#erros').innerHTML = '<div class="erro-msg" role="alert">' + ICON.warn + '<div><p>Para confirmar, falta:</p><ul>' + itens + '</ul></div></div>';
+      if (!st.loc.trim()) erroLoc();
+      focar($('#erros'));
+      return;
+    }
     elRes.innerHTML = '';
-    if (elDemo.checked) { elDemo.checked = false; mostrarErroServico(); } else { mostrarSucesso(); }
+    if (elDemo.checked) { elDemo.checked = false; mostrarErroServico(); return; }
+    st.done = { loc: true, dia: true, hora: true }; st.fim = true;
+    renderEtapas();
+    mostrarSucesso();
   }
 
   function novo() {
-    st = { loc: '', mes: mesAtual, dia: null, hora: '', mais: false };
+    st = novoEstado();
     elLoc.value = '';
     limparErros();
     elRes.innerHTML = '';
     elForm.hidden = false;
-    renderCal(); renderHoras(); renderResumo();
+    $('#telefone').hidden = true; $('#btn-ligar').setAttribute('aria-expanded', 'false');
+    renderCal(); renderHoras(); atualizar();
     document.title = 'Agendar consulta | Agenda Saúde';
-    anunciar('Novo agendamento. Escolha o local, o dia e o horário.');
+    anunciar('Novo agendamento. Etapa 2 de 5: Local.');
     focar($('#titulo'));
     window.scrollTo(0, 0);
   }
 
   /* ---------- eventos ---------- */
   document.addEventListener('click', function (e) {
-    var alvoLink = e.target.closest('[data-alvo]');
-    if (alvoLink) { e.preventDefault(); focar($(alvoLink.getAttribute('data-alvo'))); return; }
-    var b = e.target.closest('[data-act], #btn-local, #btn-confirmar');
+    var link = e.target.closest('[data-alvo]');
+    if (link) { e.preventDefault(); focar($(link.getAttribute('data-alvo'))); return; }
+    var b = e.target.closest('button, [data-act]');
     if (!b) return;
-    var a = b.getAttribute('data-act');
-    if (b.id === 'btn-local') {
-      st.loc = 'Centro, Rio de Janeiro'; elLoc.value = st.loc; limparErros(); renderResumo();
+    var id = b.id, a = b.getAttribute('data-act');
+    if (id === 'btn-local') {
+      st.loc = 'Centro, Rio de Janeiro'; elLoc.value = st.loc; st.done.loc = false; limparErros(); atualizar();
       elLoc.focus({ preventScroll: true });
       anunciar('Local preenchido com um exemplo: Centro, Rio de Janeiro.');
-    } else if (b.id === 'btn-confirmar' || a === 'confirmar') {
-      confirmar();
-    } else if (a === 'mes-ant' || a === 'mes-prox') {
+    } else if (id === 'cont-local') { contLocal(); }
+    else if (id === 'cont-dia') { contDia(); }
+    else if (id === 'cont-hora') { contHora(); }
+    else if (id === 'btn-confirmar' || a === 'confirmar') { confirmar(); }
+    else if (id === 'btn-ligar') {
+      var t = $('#telefone'), abrir = t.hidden;
+      t.hidden = !abrir; b.setAttribute('aria-expanded', String(abrir));
+    }
+    else if (id === 'btn-livre') { focar($('#h-hora')); }
+    else if (a === 'mes-ant' || a === 'mes-prox') {
       if (b.getAttribute('aria-disabled') === 'true') return;
       st.mes = new Date(st.mes.getFullYear(), st.mes.getMonth() + (a === 'mes-ant' ? -1 : 1), 1);
       renderCal('[data-act="' + a + '"]');
       anunciar(mesTxt(st.mes));
-    } else if (a === 'dia') {
+    }
+    else if (a === 'dia') {
       var d = fromIso(b.getAttribute('data-data'));
-      st.dia = d; st.hora = '';
+      st.dia = d; st.hora = ''; st.done.dia = false; st.done.hora = false;
       limparErros();
-      renderCal('[data-data="' + iso(d) + '"]'); renderHoras(); renderResumo();
-      anunciar('Dia escolhido: ' + longo(d) + '. Horários da Clínica A disponíveis abaixo.');
-    } else if (a === 'mais-horas') {
+      renderCal('[data-data="' + iso(d) + '"]'); renderHoras(); atualizar();
+      anunciar('Dia escolhido: ' + longo(d) + '. Horários da Clínica de exemplo A abaixo.');
+    }
+    else if (a === 'mais-horas') {
       st.mais = true; renderHoras('input[value="16:30"]');
       anunciar('Mais três horários da tarde: 16:30, 17:00 e 17:30.');
-    } else if (a === 'ver-clinica-a') {
-      focar(st.dia ? $('#cl-a') : $('#h-dia'));
-      if (!st.dia) anunciar('Escolha um dia no calendário para ver os horários.');
-    } else if (a === 'outro-horario') {
-      elRes.innerHTML = '';
-      document.title = 'Agendar consulta | Agenda Saúde';
-      focar(st.dia ? $('#h-hora') : $('#h-dia'));
-    } else if (a === 'novo') {
-      novo();
     }
+    else if (a === 'novo') { novo(); }
   });
 
   document.addEventListener('change', function (e) {
-    if (e.target.name === 'hora') { st.hora = e.target.value; limparErros(); renderResumo(); }
+    if (e.target.name === 'hora') { st.hora = e.target.value; st.done.hora = false; limparErros(); atualizar(); }
   });
-  elLoc.addEventListener('input', function () { st.loc = elLoc.value; renderResumo(); });
+  elLoc.addEventListener('input', function () {
+    var mudou = st.loc !== elLoc.value; st.loc = elLoc.value;
+    if (mudou && st.done.loc) { st.done.loc = false; renderEtapas(); }
+    renderResumo();
+  });
 
   /* ---------- início ---------- */
-  renderCal(); renderHoras(); renderResumo();
+  renderCal(); renderHoras(); atualizar();
 })();
