@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agendar consulta | Agenda Saúde</title>
+  <meta name="description" content="Protótipo de agendamento de consulta em uma página, com cinco etapas.">
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <a class="skip" href="#conteudo">Ir para o conteúdo</a>
+
+  <header class="topo">
+    <div class="topo-in">
+      <a class="marca" href="./" aria-label="Agenda Saúde, página inicial">
+        <svg class="marca-ic" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+          <rect width="40" height="40" rx="10" fill="#0B3D91"></rect>
+          <path d="M17 9h6v8h8v6h-8v8h-6v-8H9v-6h8z" fill="#fff"></path>
+        </svg>
+        <span class="marca-nome">Agenda Saúde</span>
+      </a>
+      <nav class="menu" aria-label="Principal">
+        <ul>
+          <li><a href="./" aria-current="page">Agendar consulta</a></li>
+          <li><a href="#ajuda">Ajuda</a></li>
+        </ul>
+      </nav>
+      <p class="topo-ajuda">Precisa de ajuda? <a href="tel:136">Ligue 136</a></p>
+    </div>
+  </header>
+
+  <main id="conteudo" class="principal" tabindex="-1">
+    <div id="app"></div>
+    <noscript><p class="aviso-js">Esta página precisa de JavaScript para mostrar as etapas do agendamento. Se preferir, ligue 136 (Disque Saúde).</p></noscript>
+  </main>
+
+  <div id="status" class="sr-only" role="status" aria-live="polite"></div>
+
+  <footer class="rodape" id="ajuda">
+    <div class="rodape-in">
+      <section aria-labelledby="ajuda-titulo">
+        <h2 id="ajuda-titulo">Ajuda</h2>
+        <p>Dúvidas sobre o agendamento? Ligue <a href="tel:136">136</a> (Disque Saúde, ligação gratuita).</p>
+        <p>Você pode voltar a qualquer etapa e mudar uma escolha sem perder as outras.</p>
+      </section>
+      <section aria-labelledby="demo-titulo" class="demo">
+        <h2 id="demo-titulo">Modo demonstração</h2>
+        <p>Este é um protótipo acadêmico. Nenhuma consulta é marcada de verdade.</p>
+        <label class="demo-op">
+          <input type="checkbox" id="demo-falha">
+          <span>Simular uma falha do serviço na próxima confirmação</span>
+        </label>
+      </section>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
