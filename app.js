@@ -24,13 +24,13 @@
   var mesMax = new Date(hoje.getFullYear(), hoje.getMonth() + 3, 1);
 
   function novoEstado() {
-    return { loc: '', mes: mesAtual, dia: null, hora: '', mais: false, done: { loc: false, dia: false, hora: false }, fim: false };
+    return { step: 2, view: 'flow', loc: '', mes: mesAtual, dia: null, hora: '', mais: false, tel: false, erro: null };
   }
   var st = novoEstado();
 
-  function $(s) { return document.querySelector(s); }
-  var elLoc = $('#loc'), elStatus = $('#status'), elDemo = $('#demo-falha');
-  var elForm = $('#formulario'), elRes = $('#resultado');
+  var app = document.getElementById('app');
+  var statusEl = document.getElementById('status');
+  var demo = document.getElementById('demo-falha');
 
   /* ---------- utilidades ---------- */
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -39,39 +39,43 @@
   function mesTxt(d) { return MESES[d.getMonth()] + ' ' + d.getFullYear(); }
   function longo(d) { return d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
   function disponivel(d) { var w = d.getDay(); return d > hoje && w !== 0 && w !== 6; }
-  function anunciar(t) { elStatus.textContent = ''; setTimeout(function () { elStatus.textContent = t; }, 30); }
-  function focar(el) {
-    if (!el) return;
-    if (!el.hasAttribute('tabindex') && !/^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) el.setAttribute('tabindex', '-1');
-    el.focus({ preventScroll: true });
-    el.scrollIntoView({ block: 'start' });
-  }
+  function anunciar(t) { statusEl.textContent = ''; setTimeout(function () { statusEl.textContent = t; }, 30); }
 
-  /* ---------- indicador de etapas ---------- */
-  function etapaAtual() {
-    var feitas = [true, st.done.loc, st.done.dia, st.done.hora, st.fim];
-    for (var i = 0; i < 5; i++) if (!feitas[i]) return { n: i + 1, feitas: feitas, todas: false };
-    return { n: 5, feitas: feitas, todas: true };
-  }
-  function renderEtapas(soHtml) {
-    var e = etapaAtual();
+  /* ---------- peças ---------- */
+  function etapas(atual, concluido) {
     var itens = STEPS.map(function (nome, i) {
-      var n = i + 1, feita = e.feitas[i];
-      var cls = (feita || n === e.n) ? 'on' : '';
-      var atual = n === e.n && !e.todas;
-      if (atual) cls += ' atual';
+      var n = i + 1;
+      var feita = concluido || n < atual;
+      var cls = (feita || n === atual) ? 'on' : '';
+      var ehAtual = n === atual && !concluido;
+      if (ehAtual) cls += ' atual';
       var marca = feita ? ICON.check + '<span class="sr-only"> concluída</span> ' : '';
-      return '<li class="' + cls + '"' + (atual ? ' aria-current="step"' : '') + '><span class="barra"></span><span class="nome">' + marca + esc(nome) + '</span></li>';
+      return '<li class="' + cls + '"' + (ehAtual ? ' aria-current="step"' : '') + '><span class="barra"></span><span class="nome">' + marca + esc(nome) + '</span></li>';
     }).join('');
-    var txt = e.todas ? 'Etapa 5 de 5: concluída' : 'Etapa ' + e.n + ' de 5<span class="so-estreito">: ' + esc(STEPS[e.n - 1]) + '</span>';
-    var html = '<p class="etapa-txt">' + txt + '</p><nav aria-label="Etapas do agendamento"><ol class="steps">' + itens + '</ol></nav>';
-    if (soHtml) return html;
-    $('#etapas').innerHTML = html;
-    return e.todas ? 'Etapa 5 de 5: concluída' : 'Etapa ' + e.n + ' de 5: ' + STEPS[e.n - 1];
+    var txt = concluido ? 'Etapa 5 de 5: concluída' : 'Etapa ' + atual + ' de 5<span class="so-estreito">: ' + esc(STEPS[atual - 1]) + '</span>';
+    return '<div><p class="etapa-txt">' + txt + '</p><nav aria-label="Etapas do agendamento"><ol class="steps">' + itens + '</ol></nav></div>';
+  }
+  function erroMsg(id, msg) {
+    if (!msg) return '';
+    return '<p class="erro-msg" id="' + id + '" role="alert">' + ICON.warn + '<span>' + esc(msg) + '</span></p>';
+  }
+  function voltar() { return '<button type="button" class="btn" data-act="voltar">' + ICON.left + ' Voltar</button>'; }
+
+  /* ---------- etapa 2: local ---------- */
+  function vLocal() {
+    var inv = st.erro ? ' aria-invalid="true" aria-describedby="e-loc"' : '';
+    return '<h1 id="titulo" tabindex="-1">Onde você quer ser atendido?</h1>' +
+      '<form data-form="loc" novalidate>' +
+      '<div class="field"><label for="loc">Bairro, CEP ou endereço</label>' + erroMsg('e-loc', st.erro) +
+      '<input class="input" type="text" id="loc" name="loc" placeholder="Exemplo: Centro, Rio de Janeiro" value="' + esc(st.loc) + '" autocomplete="off"' + inv + '></div>' +
+      '<div class="field"><button type="button" class="btn btn-outline btn-wide" data-act="local-exemplo">Usar minha localização</button>' +
+      '<p class="hint">Neste protótipo, o botão preenche um local de exemplo. Nenhuma localização é lida.</p></div>' +
+      '<button type="submit" class="btn btn-primary btn-wide">Continuar</button>' +
+      '<p class="nota">Se faltar algum dado, o botão continua ativo e a tela avisa o que preencher.</p></form>';
   }
 
-  /* ---------- calendário ---------- */
-  function renderCal(foco) {
+  /* ---------- etapa 3: dia ---------- */
+  function vDia() {
     var y = st.mes.getFullYear(), m = st.mes.getMonth();
     var offset = new Date(y, m, 1).getDay();
     var total = new Date(y, m + 1, 0).getDate();
@@ -92,209 +96,189 @@
       linhas += '<tr>' + cels + '</tr>';
     }
     var antDes = st.mes <= mesAtual, proxDes = st.mes >= mesMax;
-    $('#calendario').innerHTML =
+    return '<h1 id="titulo" tabindex="-1">Escolha o dia da consulta</h1>' +
+      '<form data-form="dia" novalidate>' +
       '<div class="mes-nav">' +
       '<button type="button" class="btn" data-act="mes-ant"' + (antDes ? ' aria-disabled="true"' : '') + '>' + ICON.left + ' Mês anterior</button>' +
-      '<h3 id="mes" aria-live="polite">' + mesTxt(st.mes) + '</h3>' +
+      '<h2 id="mes" class="mes-titulo" aria-live="polite">' + mesTxt(st.mes) + '</h2>' +
       '<button type="button" class="btn" data-act="mes-prox"' + (proxDes ? ' aria-disabled="true"' : '') + '>Próximo mês ' + ICON.right + '</button></div>' +
       '<table class="cal" aria-labelledby="mes"><thead><tr>' + cab + '</tr></thead><tbody>' + linhas + '</tbody></table>' +
       '<p class="legenda">Legenda: ' + ICON.check + ' escolhido · número riscado e cinza = sem vaga</p>' +
-      '<p class="escolha">' + (st.dia ? 'Dia escolhido: ' + esc(longo(st.dia)) : 'Nenhum dia escolhido ainda.') + '</p>';
-    if (foco) { var alvo = $(foco); if (alvo) alvo.focus({ preventScroll: true }); }
+      erroMsg('e-dia', st.erro) +
+      '<p class="escolha" id="dia-escolhido">' + (st.dia ? 'Dia escolhido: ' + esc(longo(st.dia)) : 'Nenhum dia escolhido ainda.') + '</p>' +
+      '<div class="actions">' + voltar() + '<button type="submit" class="btn btn-primary">Continuar</button></div></form>';
   }
 
-  /* ---------- horários ---------- */
+  /* ---------- etapa 4: horário ---------- */
   function grupo(nome, lista) {
     var h = lista.map(function (t) {
       return '<label class="hora"><input type="radio" name="hora" value="' + t + '"' + (st.hora === t ? ' checked' : '') + '><span>' + t + '</span></label>';
     }).join('');
     return '<fieldset><legend class="legend">' + nome + '</legend><div class="horas">' + h + '</div></fieldset>';
   }
-  function renderHoras(foco) {
-    if (!st.dia) {
-      $('#horarios').innerHTML = '<p class="aviso">Escolha um dia no calendário para ver os horários da Clínica de exemplo A.</p>';
-      return;
-    }
+  function vHorario() {
     var tarde = st.mais ? TARDE.concat(TARDE_MAIS) : TARDE;
-    $('#horarios').innerHTML =
-      '<p class="lead">Clínica de exemplo A · ' + esc(longo(st.dia)) + '</p>' +
+    return '<h1 id="titulo" tabindex="-1">Escolha o horário</h1>' +
+      '<form data-form="hora" novalidate>' +
+      '<p class="lead" id="cl-a" tabindex="-1">Clínica de exemplo A · ' + esc(longo(st.dia)) + '</p>' +
       grupo('Manhã', MANHA) + grupo('Tarde', tarde) +
       (st.mais ? '' : '<button type="button" class="btn btn-outline btn-wide btn-ver-mais" data-act="mais-horas">Ver mais horários da tarde</button>') +
-      '<p class="aviso">Aviso: sábado e domingo não têm atendimento nesta clínica.</p>';
-    if (foco) { var alvo = $(foco); if (alvo) alvo.focus({ preventScroll: true }); }
+      '<p class="aviso">Aviso: sábado e domingo não têm atendimento nesta clínica.</p>' +
+      '<section class="clinica" aria-labelledby="cl-b">' +
+      '<span class="badge badge-warn">' + ICON.warn + ' Sem agendamento pelo site</span>' +
+      '<h2 id="cl-b" class="sub">Esta clínica não marca consulta pelo site</h2>' +
+      '<p>Para marcar, fale com a clínica. Você também pode ver outras clínicas que têm horário livre.</p>' +
+      '<button type="button" class="btn btn-outline btn-wide" data-act="ligar" aria-expanded="' + st.tel + '" aria-controls="telefone">Ligar para a clínica</button>' +
+      '<p id="telefone"' + (st.tel ? '' : ' hidden') + '>Telefone de exemplo: (00) 0000-0000</p>' +
+      '<button type="button" class="btn btn-outline btn-wide" data-act="ver-clinica-a">Ver clínicas com horário livre</button></section>' +
+      erroMsg('e-hora', st.erro) +
+      '<div class="actions">' + voltar() + '<button type="submit" class="btn btn-primary">Continuar</button></div></form>';
   }
 
-  /* ---------- resumo ---------- */
-  function renderResumo() {
-    function linha(rot, val, vazio) {
-      return '<div><dt>' + rot + '</dt><dd>' + (val ? esc(val) : '<span class="vazio">' + vazio + '</span>') + '</dd></div>';
+  /* ---------- etapa 5: confirmar ---------- */
+  function resumo(comAlterar) {
+    function linha(rot, val, passo) {
+      return '<div><dt>' + rot + '</dt><dd><span>' + esc(val) + '</span>' +
+        (comAlterar && passo ? '<button type="button" class="btn" data-act="alterar" data-passo="' + passo + '" aria-label="Alterar ' + rot.toLowerCase() + '">Alterar</button>' : '') + '</dd></div>';
     }
-    $('#resumo').innerHTML =
-      linha('Especialidade', ESPECIALIDADE) +
-      linha('Local', st.loc.trim(), 'Ainda não informado') +
-      linha('Dia', st.dia ? longo(st.dia) : '', 'Ainda não escolhido') +
-      linha('Horário', st.hora, 'Ainda não escolhido') +
-      linha('Clínica', st.hora ? CLINICA : '', 'Escolha um horário');
+    return '<dl class="resumo">' + linha('Especialidade', ESPECIALIDADE, 0) + linha('Local', st.loc.trim(), 2) +
+      linha('Dia', longo(st.dia), 3) + linha('Horário', st.hora, 4) + linha('Clínica', CLINICA, 0) + '</dl>';
   }
-
-  function atualizar(msg) {
-    var tx = renderEtapas();
-    if (msg) anunciar(msg + ' ' + tx);
-    renderResumo();
+  function vConfirmar() {
+    return '<h1 id="titulo" tabindex="-1">Confira e confirme</h1>' +
+      '<p class="lead">Revise os dados. Você pode alterar qualquer um antes de confirmar.</p>' + resumo(true) +
+      '<div class="actions">' + voltar() + '<button type="button" class="btn btn-primary" data-act="confirmar">Confirmar agendamento</button></div>';
   }
-
-  /* ---------- erros ---------- */
-  function msgErro(id, texto) {
-    return '<p class="erro-msg" id="' + id + '" role="alert">' + ICON.warn + '<span>' + esc(texto) + '</span></p>';
-  }
-  function limparErros() {
-    $('#erros').innerHTML = ''; $('#erro-dia').innerHTML = ''; $('#erro-hora').innerHTML = ''; $('#erro-loc').innerHTML = '';
-    elLoc.removeAttribute('aria-invalid');
-    elLoc.setAttribute('aria-describedby', 'dica-loc');
-  }
-  function erroLoc() {
-    $('#erro-loc').innerHTML = msgErro('e-loc', 'Informe o bairro, o CEP ou o endereço para continuar.');
-    elLoc.setAttribute('aria-invalid', 'true');
-    elLoc.setAttribute('aria-describedby', 'e-loc dica-loc');
-  }
-
-  /* ---------- continuar em cada cartão ---------- */
-  function contLocal() {
-    limparErros();
-    if (!st.loc.trim()) { erroLoc(); focar(elLoc); return; }
-    st.done.loc = true; atualizar('Local confirmado.');
-    focar($('#h-dia'));
-  }
-  function contDia() {
-    limparErros();
-    if (!st.dia) { $('#erro-dia').innerHTML = msgErro('e-dia', 'Escolha um dia disponível para continuar.'); focar($('#e-dia')); return; }
-    st.done.dia = true; atualizar('Dia confirmado.');
-    focar($('#h-hora'));
-  }
-  function contHora() {
-    limparErros();
-    if (!st.dia) { $('#erro-hora').innerHTML = msgErro('e-hora', 'Escolha um dia no calendário antes de escolher o horário.'); focar($('#e-hora')); return; }
-    if (!st.hora) { $('#erro-hora').innerHTML = msgErro('e-hora', 'Escolha um horário para continuar.'); focar($('#e-hora')); return; }
-    st.done.hora = true; atualizar('Horário confirmado.');
-    focar($('#h-confirmar'));
-  }
-
-  /* ---------- confirmar e resultados ---------- */
-  function resumoFinal() {
-    return '<dl class="resumo">' +
-      '<div><dt>Especialidade</dt><dd>' + esc(ESPECIALIDADE) + '</dd></div>' +
-      '<div><dt>Local</dt><dd>' + esc(st.loc.trim()) + '</dd></div>' +
-      '<div><dt>Dia</dt><dd>' + esc(longo(st.dia)) + '</dd></div>' +
-      '<div><dt>Horário</dt><dd>' + esc(st.hora) + '</dd></div>' +
-      '<div><dt>Clínica</dt><dd>' + esc(CLINICA) + '</dd></div></dl>';
-  }
-  function mostrarSucesso() {
-    elForm.hidden = true;
-    elRes.innerHTML = '<div class="card">' + renderEtapas(true) + '<span class="badge badge-ok" role="status">' + ICON.check + ' Consulta agendada com sucesso</span>' +
-      '<h1 id="res-titulo" tabindex="-1">Tudo certo com a sua consulta</h1>' + resumoFinal() +
-      '<button type="button" class="btn btn-primary btn-wide" data-act="novo">Agendar outra consulta</button></div>';
-    document.title = 'Consulta agendada com sucesso | Agenda Saúde';
-    anunciar('Consulta agendada com sucesso. Etapa 5 de 5: concluída.');
-    focar($('#res-titulo'));
-    window.scrollTo(0, 0);
-  }
-  function mostrarErroServico() {
-    elForm.hidden = false;
-    elRes.innerHTML = '<div class="card"><span class="badge badge-err">' + ICON.warn + ' Erro no agendamento</span>' +
-      '<h2 id="res-titulo" tabindex="-1">Não conseguimos abrir os agendamentos</h2>' +
+  function vErro() {
+    return '<span class="badge badge-err">' + ICON.warn + ' Erro no agendamento</span>' +
+      '<h1 id="titulo" tabindex="-1">Não conseguimos abrir os agendamentos</h1>' +
       '<p class="lead">O serviço de agendamento não respondeu. Isso não foi causado por você. Suas escolhas continuam salvas. Escolha o que prefere fazer agora.</p>' +
       '<button type="button" class="btn btn-primary btn-wide" data-act="confirmar">Tentar de novo</button>' +
       '<a class="btn btn-outline btn-wide" href="' + UBS_URL + '" target="_blank" rel="noopener">Pesquisar a UBS mais próxima<span class="sr-only"> (abre em nova aba)</span></a>' +
-      '<p class="lead"><strong>Precisa de ajuda agora? Ligue <a href="tel:136">136</a> (Disque Saúde).</strong></p></div>';
-    document.title = 'Erro no agendamento | Agenda Saúde';
-    anunciar('Erro no agendamento. Suas escolhas continuam salvas.');
-    focar($('#res-titulo'));
-    window.scrollTo(0, 0);
+      '<p class="lead"><strong>Precisa de ajuda agora? Ligue <a href="tel:136">136</a> (Disque Saúde).</strong></p>';
+  }
+  function vSucesso() {
+    return '<span class="badge badge-ok" role="status">' + ICON.check + ' Consulta agendada com sucesso</span>' +
+      '<h1 id="titulo" tabindex="-1">Tudo certo com a sua consulta</h1>' + resumo(false) +
+      '<button type="button" class="btn btn-primary btn-wide" data-act="novo">Agendar outra consulta</button>';
   }
 
-  function confirmar() {
-    limparErros();
-    var falta = [];
-    if (!st.loc.trim()) falta.push({ txt: 'Informe o bairro, o CEP ou o endereço', alvo: '#loc' });
-    if (!st.dia) falta.push({ txt: 'Escolha um dia no calendário', alvo: '#h-dia' });
-    else if (!st.hora) falta.push({ txt: 'Escolha um horário', alvo: '#h-hora' });
-    if (falta.length) {
-      var itens = falta.map(function (f) { return '<li><a href="#" data-alvo="' + f.alvo + '">' + esc(f.txt) + '</a></li>'; }).join('');
-      $('#erros').innerHTML = '<div class="erro-msg" role="alert">' + ICON.warn + '<div><p>Para confirmar, falta:</p><ul>' + itens + '</ul></div></div>';
-      if (!st.loc.trim()) erroLoc();
-      focar($('#erros'));
-      return;
+  /* ---------- renderização ---------- */
+  function render(opt) {
+    opt = opt || {};
+    var html, titulo, concluido = false, passo = st.step;
+    if (st.view === 'ok') { html = vSucesso(); concluido = true; passo = 5; titulo = 'Consulta agendada com sucesso'; }
+    else if (st.view === 'erro') { html = vErro(); passo = 5; titulo = 'Erro no agendamento'; }
+    else {
+      html = { 2: vLocal, 3: vDia, 4: vHorario, 5: vConfirmar }[st.step]();
+      titulo = 'Etapa ' + st.step + ' de 5: ' + STEPS[st.step - 1];
     }
-    elRes.innerHTML = '';
-    if (elDemo.checked) { elDemo.checked = false; mostrarErroServico(); return; }
-    st.done = { loc: true, dia: true, hora: true }; st.fim = true;
-    renderEtapas();
-    mostrarSucesso();
+    app.innerHTML = '<div class="card">' + etapas(passo, concluido) + html + '</div>';
+    document.title = titulo + ' | Agenda Saúde';
+    if (opt.anuncio !== false) anunciar(titulo);
+    var alvo = opt.foco ? app.querySelector(opt.foco) : (opt.semFoco ? null : app.querySelector('#titulo'));
+    if (alvo) alvo.focus({ preventScroll: !!opt.semRolagem });
   }
 
-  function novo() {
-    st = novoEstado();
-    elLoc.value = '';
-    limparErros();
-    elRes.innerHTML = '';
-    elForm.hidden = false;
-    $('#telefone').hidden = true; $('#btn-ligar').setAttribute('aria-expanded', 'false');
-    renderCal(); renderHoras(); atualizar();
-    document.title = 'Agendar consulta | Agenda Saúde';
-    anunciar('Novo agendamento. Etapa 2 de 5: Local.');
-    focar($('#titulo'));
+  /* ---------- navegação ---------- */
+  function maxPasso() {
+    if (!st.loc.trim()) return 2;
+    if (!st.dia) return 3;
+    if (!st.hora) return 4;
+    return 5;
+  }
+  function hashDe() {
+    if (st.view === 'ok') return '#confirmado';
+    if (st.view === 'erro') return '#erro';
+    return '#etapa-' + st.step;
+  }
+  function ir(passo, empilhar) {
+    st.view = 'flow';
+    st.step = Math.min(Math.max(passo, 2), maxPasso());
+    st.erro = null;
+    if (empilhar !== false) history.pushState(null, '', hashDe());
+    render();
     window.scrollTo(0, 0);
   }
+  window.addEventListener('popstate', function () {
+    var h = location.hash, m = /^#etapa-([2-5])$/.exec(h);
+    if (m) { st.view = 'flow'; st.step = Math.min(+m[1], maxPasso()); }
+    else if (h === '#confirmado' && st.hora) { st.view = 'ok'; }
+    else if (h === '#erro' && st.hora) { st.view = 'erro'; }
+    else { st.view = 'flow'; st.step = 2; }
+    st.erro = null;
+    render();
+  });
 
   /* ---------- eventos ---------- */
-  document.addEventListener('click', function (e) {
-    var link = e.target.closest('[data-alvo]');
-    if (link) { e.preventDefault(); focar($(link.getAttribute('data-alvo'))); return; }
-    var b = e.target.closest('button, [data-act]');
+  app.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
     if (!b) return;
-    var id = b.id, a = b.getAttribute('data-act');
-    if (id === 'btn-local') {
-      st.loc = 'Centro, Rio de Janeiro'; elLoc.value = st.loc; st.done.loc = false; limparErros(); atualizar();
-      elLoc.focus({ preventScroll: true });
+    var a = b.getAttribute('data-act');
+    if (a === 'voltar') { ir(st.step - 1); }
+    else if (a === 'alterar') { ir(+b.getAttribute('data-passo')); }
+    else if (a === 'local-exemplo') {
+      st.loc = 'Centro, Rio de Janeiro'; st.erro = null;
+      render({ foco: '#loc', anuncio: false, semRolagem: true });
       anunciar('Local preenchido com um exemplo: Centro, Rio de Janeiro.');
-    } else if (id === 'cont-local') { contLocal(); }
-    else if (id === 'cont-dia') { contDia(); }
-    else if (id === 'cont-hora') { contHora(); }
-    else if (id === 'btn-confirmar' || a === 'confirmar') { confirmar(); }
-    else if (id === 'btn-ligar') {
-      var t = $('#telefone'), abrir = t.hidden;
-      t.hidden = !abrir; b.setAttribute('aria-expanded', String(abrir));
     }
-    else if (id === 'btn-livre') { focar($('#h-hora')); }
     else if (a === 'mes-ant' || a === 'mes-prox') {
       if (b.getAttribute('aria-disabled') === 'true') return;
       st.mes = new Date(st.mes.getFullYear(), st.mes.getMonth() + (a === 'mes-ant' ? -1 : 1), 1);
-      renderCal('[data-act="' + a + '"]');
+      render({ foco: '[data-act="' + a + '"]', semRolagem: true, anuncio: false });
       anunciar(mesTxt(st.mes));
     }
     else if (a === 'dia') {
       var d = fromIso(b.getAttribute('data-data'));
-      st.dia = d; st.hora = ''; st.done.dia = false; st.done.hora = false;
-      limparErros();
-      renderCal('[data-data="' + iso(d) + '"]'); renderHoras(); atualizar();
-      anunciar('Dia escolhido: ' + longo(d) + '. Horários da Clínica de exemplo A abaixo.');
+      st.dia = d; st.hora = ''; st.erro = null;
+      render({ foco: '[data-data="' + iso(d) + '"]', semRolagem: true, anuncio: false });
+      anunciar('Dia escolhido: ' + longo(d));
     }
     else if (a === 'mais-horas') {
-      st.mais = true; renderHoras('input[value="16:30"]');
+      st.mais = true;
+      render({ foco: 'input[value="16:30"]', semRolagem: true, anuncio: false });
       anunciar('Mais três horários da tarde: 16:30, 17:00 e 17:30.');
     }
-    else if (a === 'novo') { novo(); }
+    else if (a === 'ligar') {
+      st.tel = !st.tel;
+      render({ foco: '[data-act="ligar"]', semRolagem: true, anuncio: false });
+    }
+    else if (a === 'ver-clinica-a') { var c = app.querySelector('#cl-a'); if (c) { c.focus(); c.scrollIntoView({ block: 'center' }); } }
+    else if (a === 'confirmar') {
+      if (demo.checked) { demo.checked = false; st.view = 'erro'; } else { st.view = 'ok'; }
+      history.pushState(null, '', hashDe());
+      render();
+      window.scrollTo(0, 0);
+    }
+    else if (a === 'novo') {
+      st = novoEstado();
+      history.pushState(null, '', hashDe());
+      render();
+      window.scrollTo(0, 0);
+    }
   });
 
-  document.addEventListener('change', function (e) {
-    if (e.target.name === 'hora') { st.hora = e.target.value; st.done.hora = false; limparErros(); atualizar(); }
-  });
-  elLoc.addEventListener('input', function () {
-    var mudou = st.loc !== elLoc.value; st.loc = elLoc.value;
-    if (mudou && st.done.loc) { st.done.loc = false; renderEtapas(); }
-    renderResumo();
+  app.addEventListener('change', function (e) { if (e.target.name === 'hora') { st.hora = e.target.value; } });
+  app.addEventListener('input', function (e) { if (e.target.id === 'loc') { st.loc = e.target.value; } });
+
+  app.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = e.target.getAttribute('data-form');
+    if (f === 'loc') {
+      var v = (app.querySelector('#loc').value || '').trim();
+      st.loc = v;
+      if (!v) { st.erro = 'Informe o bairro, o CEP ou o endereço para continuar.'; render({ foco: '#loc', anuncio: false }); anunciar(st.erro); return; }
+      ir(3);
+    } else if (f === 'dia') {
+      if (!st.dia) { st.erro = 'Escolha um dia disponível para continuar.'; render({ semFoco: true, anuncio: false }); var ed = app.querySelector('#e-dia'); ed.setAttribute('tabindex', '-1'); ed.focus(); return; }
+      ir(4);
+    } else if (f === 'hora') {
+      if (!st.hora) { st.erro = 'Escolha um horário para continuar.'; render({ semFoco: true, anuncio: false }); var eh = app.querySelector('#e-hora'); eh.setAttribute('tabindex', '-1'); eh.focus(); return; }
+      ir(5);
+    }
   });
 
   /* ---------- início ---------- */
-  renderCal(); renderHoras(); atualizar();
+  history.replaceState(null, '', '#etapa-2');
+  render({ semFoco: true });
 })();
